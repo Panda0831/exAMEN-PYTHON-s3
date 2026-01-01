@@ -1,0 +1,57 @@
+-- 1. Table des Bâtiments
+CREATE TABLE BATIMENT (
+    id_batiment INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom TEXT NOT NULL UNIQUE,
+    localisation TEXT,
+    type_batiment TEXT CHECK(type_batiment IN ('Hôpital','Université','Entreprise','Église','Administration'))
+);
+
+-- 2. Table des Sources d'énergie
+CREATE TABLE SOURCE_ENERGIE (
+    id_source INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom_source TEXT NOT NULL UNIQUE, -- Évite les doublons comme 'JIRAMA'
+    cout_kwh REAL NOT NULL CHECK(cout_kwh >= 0),
+    description TEXT
+);
+
+-- 3. Types d'équipements
+CREATE TABLE TYPE_EQUIPEMENT (
+    id_type INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom_type TEXT NOT NULL UNIQUE,
+    consommation_theorique REAL CHECK(consommation_theorique >= 0)
+);
+
+-- 4. Équipements (avec contrainte d'unicité par bâtiment)
+CREATE TABLE EQUIPEMENT (
+    id_equipement INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom_equipement TEXT NOT NULL,
+    puissance_watt REAL CHECK(puissance_watt > 0),
+    id_type INTEGER,
+    id_batiment INTEGER,
+    FOREIGN KEY (id_type) REFERENCES TYPE_EQUIPEMENT(id_type),
+    FOREIGN KEY (id_batiment) REFERENCES BATIMENT(id_batiment),
+    UNIQUE(nom_equipement, id_batiment) -- Règle : pas deux noms identiques au même endroit
+);
+
+-- 5. Journal des Coupures (avec check de cohérence temporelle)
+CREATE TABLE COUPURE (
+    id_coupure INTEGER PRIMARY KEY AUTOINCREMENT,
+    debut_coupure DATETIME NOT NULL,
+    fin_coupure DATETIME,
+    id_batiment INTEGER,
+    cause TEXT,
+    FOREIGN KEY (id_batiment) REFERENCES BATIMENT(id_batiment),
+    CHECK(fin_coupure IS NULL OR fin_coupure > debut_coupure) -- Logique temporelle
+);
+
+-- 6. Consommation (La table pour les calculs NumPy)
+CREATE TABLE CONSOMMATION (
+    id_conso INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_equipement INTEGER,
+    id_source INTEGER,
+    date_heure DATETIME DEFAULT CURRENT_TIMESTAMP,
+    duree_minutes INTEGER CHECK(duree_minutes > 0),
+    energie_kwh REAL CHECK(energie_kwh >= 0),
+    FOREIGN KEY (id_equipement) REFERENCES EQUIPEMENT(id_equipement),
+    FOREIGN KEY (id_source) REFERENCES SOURCE_ENERGIE(id_source)
+);
